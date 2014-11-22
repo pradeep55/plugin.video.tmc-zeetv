@@ -70,7 +70,7 @@ def get_episodes():
             link = tag_episode['href']
             img = tag_episode.img['src']
 
-            addDir(11, item, link, img, True)
+            addDir(11, item, link, img, False)
 
     tag_next = soup.find('div', attrs={"class" : "pagination"})
     if tag_next:
@@ -86,27 +86,39 @@ def get_episodes():
 def get_video_url():
     addon_log('get_video_url: begin...')
 
-    quality = addon.getSetting('quality')
-    addon_log('Video Quality: ' + quality)
-
-    link = ''
+    videos = []
 
     html = make_request(url)
 
-    matchlist = re.compile("'(http://dittotv.[^']*.mp4[^']*)'").findall(html)
+    matchlist = re.compile("'(http://[^']*dittotv[^']*\.mp4[^']*)'").findall(html)
     if matchlist:
         for match in matchlist:
-            if ('Computer' == quality) and (-1 != match.find(".m3u8")):
-                link = match
-            elif ('Android' == quality):
-                link = match
+            if -1 != match.find(".m3u8"):
+                params = re.compile("(\?[.]*)").findall(match)
+                if params:
+                    params = params[0]
+                else:
+                    params = ''
 
-    item = xbmcgui.ListItem(path=link)
-    xbmcplugin.setResolvedUrl(handle=int(sys.argv[1]), succeeded=('' != link), listitem=item)
+                html2 = make_request(match)
+                matchlist2 = re.compile("BANDWIDTH=([0-9]+)[^\n]*\n([^\n]*)\n").findall(html2)
+                if matchlist2:
+                    for (size, video) in matchlist2:
+                        if size:
+                            size = int(size)
+                        else:
+                            size = 0
+                        video = video.replace('?null=', params)
+                        videos.append( [size, video] )
+            else:
+                videos.append( [0, match] )
+
+    videos.sort(key=lambda L : L and L[0], reverse=True)
+
+    for video in videos:
+        addDir(0, name + ' - ' + str(video[0]), video[1], image, True)
 
     addon_log('get_video_url: end...')
-
-    return link
 
 
 def addDir(mode,name,url,image,isplayable=False):
@@ -117,7 +129,7 @@ def addDir(mode,name,url,image,isplayable=False):
     if 0==mode:
         link = url
     else:
-        link = sys.argv[0]+"?mode="+str(mode)+"&name="+urllib.quote_plus(name)+"&url="+urllib.quote_plus(url)
+        link = sys.argv[0]+"?mode="+str(mode)+"&name="+urllib.quote_plus(name)+"&url="+urllib.quote_plus(url)+"&image="+urllib.quote_plus(image)
 
     ok=True
     item=xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=image)
@@ -147,9 +159,10 @@ def get_params():
     return param
 
 params=get_params()
-url=None
-name=None
 mode=None
+name=None
+url=None
+image=None
 
 try:
     mode=int(params["mode"])
@@ -163,10 +176,15 @@ try:
     url=urllib.unquote_plus(params["url"])
 except:
     pass
+try:
+    image=urllib.unquote_plus(params["image"])
+except:
+    pass
 
 addon_log("Mode: "+str(mode))
 addon_log("Name: "+str(name))
 addon_log("URL: "+str(url))
+addon_log("Image: "+str(image))
 
 if mode==None:
     get_shows()
