@@ -94,7 +94,9 @@ def get_video_url():
     if matchlist:
         for match in matchlist:
             if -1 != match.find(".m3u8"):
-                params = re.compile("(\?[.]*)").findall(match)
+                videos.append( [-1, match] )
+
+                params = re.compile("(\?.*)").findall(match)
                 if params:
                     params = params[0]
                 else:
@@ -111,12 +113,18 @@ def get_video_url():
                         video = video.replace('?null=', params)
                         videos.append( [size, video] )
             else:
-                videos.append( [0, match] )
+                videos.append( [-2, match] )
 
     videos.sort(key=lambda L : L and L[0], reverse=True)
 
     for video in videos:
-        addDir(0, name + ' - ' + str(video[0]), video[1], image, True)
+        if -1 == video[0]:
+            size = '[Auto] '
+        elif -2 == video[0]:
+            size = '[Android] '
+        else:
+            size = '[' + str(video[0]) + '] '
+        addDir(0, size + name, video[1], image, True)
 
     addon_log('get_video_url: end...')
 
