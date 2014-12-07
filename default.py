@@ -21,18 +21,15 @@ def make_request(url):
     addon_log('Request URL: ' + url)
     try:
         headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:32.0) Gecko/20100101 Firefox/32.0', 'Accept' : 'text/html,application/xml', 'Referer' : base_url}
-        req = urllib2.Request(url,None,headers)
-        response = urllib2.urlopen(req)
+        request = urllib2.Request(url,None,headers)
+        response = urllib2.urlopen(request)
         data = response.read()
-        addon_log('ResponseInfo: %s' %response.info())
+        addon_log('Response: %s' %str(response))
         response.close()
         return data
     except urllib2.URLError, e:
         addon_log('Failed to Open: "%s"' %url)
-        if hasattr(e, 'reason'):
-            addon_log('Reason: %s' %e.reason)
-        if hasattr(e, 'code'):
-            addon_log('Code: %s' %e.code)
+        addon_log('Error: %s' %str(e))
 
 def get_shows():
     addon_log('get_shows: begin...')
@@ -90,7 +87,7 @@ def get_video_url():
 
     html = make_request(url)
 
-    matchlist = re.compile("'(http://[^']*dittotv[^']*\.mp4[^']*)'").findall(html)
+    matchlist = re.compile("'(http://[^']*\.mp4[^']*)'").findall(html)
     if matchlist:
         for match in matchlist:
             if -1 != match.find(".m3u8"):
@@ -103,15 +100,16 @@ def get_video_url():
                     params = ''
 
                 html2 = make_request(match)
-                matchlist2 = re.compile("BANDWIDTH=([0-9]+)[^\n]*\n([^\n]*)\n").findall(html2)
-                if matchlist2:
-                    for (size, video) in matchlist2:
-                        if size:
-                            size = int(size)
-                        else:
-                            size = 0
-                        video = video.replace('?null=', params)
-                        videos.append( [size, video] )
+                if html2:
+                    matchlist2 = re.compile("BANDWIDTH=([0-9]+)[^\n]*\n([^\n]*)\n").findall(html2)
+                    if matchlist2:
+                        for (size, video) in matchlist2:
+                            if size:
+                                size = int(size)
+                            else:
+                                size = 0
+                            video = video.replace('?null=', params)
+                            videos.append( [size, video] )
             else:
                 videos.append( [-2, match] )
 
