@@ -37,17 +37,15 @@ def get_shows():
     html = make_request(base_url + 'shows/')
     soup = BeautifulSoup(html)
 
-    tag_showlist = soup.find('div', attrs={"class" : "list_carousel responsive"})
+    tag_showlist = soup.find('div', attrs={"class" : "left-col-inner"})
     tags_show = tag_showlist.findAll('a')
     for tag_show in tags_show:
-        tag_play = tag_show.find('div', attrs={"class" : "play-btn"})
-        if tag_play:
-            item = tag_show['title']
-            link = tag_show['href']
-            img = tag_show.img['src']
-
+        tag_img = tag_show.find('img')
+        if tag_img:
+            item = tag_show.attrs.get('title', '')
+            link = tag_show.attrs.get('href', '')
             link = link + 'video/'
-
+            img = tag_img.attrs.get('src', '')
             addDir(1, item, link, img, False)
 
     addon_log('get_shows: end...')
@@ -58,25 +56,19 @@ def get_episodes():
     html = make_request(url)
     soup = BeautifulSoup(html)
 
-    tag_episodelist = soup.find('ul', attrs={"id" : "showv_list"})
+    tag_episodelist = soup.find('div', attrs={"class" : "related-videos"})
     tags_episode = tag_episodelist.findAll('a')
     for tag_episode in tags_episode:
-        tag_play = tag_episode.find('div', attrs={"class" : "play-btn"})
-        if tag_play:
-            item = tag_episode['title']
-            link = tag_episode['href']
-            img = tag_episode.img['src']
+        item = tag_episode.attrs.get('title', '')
+        link = tag_episode.attrs.get('href', '')
+        img = tag_episode.img.attrs.get('src', '')
+        addDir(11, item, link, img, False)
 
-            addDir(11, item, link, img, False)
-
-    tag_next = soup.find('div', attrs={"class" : "pagination"})
+    tag_next = soup.find('a', attrs={"class" : "pagination_next"})
     if tag_next:
-        tag_next = tag_next.findAll('a')
-        if tag_next:
-            tag_next = tag_next[-1]
-            next = tag_next['href']
-            if -1 == next.find('javascript:void(0)'):
-                addDir(1, 'Next Page...', next, '')
+        next = tag_next.attrs.get('href', '')
+        if -1 == next.find('javascript:void(0)'):
+            addDir(1, 'Next Page...', next, '')
 
     addon_log('get_episodes: end...')
 
